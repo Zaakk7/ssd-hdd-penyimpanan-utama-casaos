@@ -1,34 +1,37 @@
 #!/bin/bash
 
-echo "=== Auto Move CasaOS AppData to External HDD ==="
+echo "=== Moving CasaOS AppData to HDD (/mnt/external) ==="
 
-# Detect HDD mount under /media/devmon
-HDD_PATH=$(ls /media/devmon | head -n 1)
+HDD_PATH="/mnt/external"
 
-if [ -z "$HDD_PATH" ]; then
-    echo "❌ Tidak menemukan HDD eksternal di /media/devmon"
+# Check HDD mount
+if [ ! -d "$HDD_PATH" ]; then
+    echo "❌ HDD tidak ditemukan di /mnt/external"
     exit 1
 fi
 
-FULL_HDD_PATH="/media/devmon/$HDD_PATH"
+echo "✔ HDD ditemukan: $HDD_PATH"
 
-echo "✔ HDD terdeteksi: $FULL_HDD_PATH"
+# Stop all casaos apps
+echo "⏹ Menghentikan semua aplikasi..."
+docker stop $(docker ps -aq)
 
-# Buat folder tujuan
-TARGET="$FULL_HDD_PATH/CasaOS/AppData"
+# Create AppData on HDD
+TARGET="$HDD_PATH/CasaOS/AppData"
 mkdir -p "$TARGET"
 
-echo "📁 Menyalin AppData ke HDD..."
+echo "📁 Menyalin data..."
 rsync -avh /DATA/AppData/ "$TARGET/"
 
-echo "📁 Membuat backup AppData lama..."
+echo "📁 Backup AppData lama..."
 mv /DATA/AppData /DATA/AppData.backup
 
-echo "🔗 Membuat symlink ke HDD..."
+echo "🔗 Membuat symlink..."
 ln -s "$TARGET" /DATA/AppData
 
-echo "🔁 Restart CasaOS..."
+echo "🔁 Restart CasaOS dan Docker..."
 systemctl restart casaos
+systemctl restart docker
 
 echo "=== SELESAI ==="
-echo "✔ AppData sudah pindah ke: $TARGET"
+echo "✔ AppData sekarang berada di: $TARGET"
