@@ -24,5 +24,6 @@ Tutorial ini menjelaskan cara memindahkan penyimpanan utama Docker & CasaOS ke S
 1. Download script:
 
 ```bash
-wget https://raw.githubusercontent.com/username/repo/main/migrate-storage.sh
-chmod +x migrate-storage.sh
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/migrate-storage.sh  
+chmod +x migrate-storage.sh  
+./migrate-storage.sh
