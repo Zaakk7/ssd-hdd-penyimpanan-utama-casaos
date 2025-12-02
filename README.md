@@ -37,10 +37,10 @@ chmod +x migrate-storage.sh
 1. Download Move App Data
 ```bash
 wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/migrate-storage.sh  
-chmod +x migrate-storage.sh  
+chmod +x moveappdata.sh  
 ```
 
 2. Jalankan
 ```bash
-./migrate-storage.sh
+./moveappdata.sh
 ```
