@@ -1,4 +1,4 @@
-# Migrasi Storage CasaOS ke SSD/HDD Eksternal
+# Migrasi Storage CasaOS ke SSD/HDD Eksternal & Move App Data
 
 Tutorial ini menjelaskan cara memindahkan penyimpanan utama Docker & CasaOS ke SSD atau HDD eksternal agar:
 - Lebih cepat
@@ -21,8 +21,20 @@ Tutorial ini menjelaskan cara memindahkan penyimpanan utama Docker & CasaOS ke S
 
 ## 🧰 Cara Pakai
 
-1. Download script:
+1. Download script Migrasi :
 
+```bash
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/migrate-storage.sh  
+chmod +x migrate-storage.sh  
+```
+
+2. Jalankan
+```bash
+./migrate-storage.sh
+```
+
+
+1. Download Move App Data
 ```bash
 wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/migrate-storage.sh  
 chmod +x migrate-storage.sh  
