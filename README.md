@@ -44,3 +44,14 @@ chmod +x moveappdata.sh
 ```bash
 ./moveappdata.sh
 ```
+
+1. Download Move App Data
+```bash
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/setup-aapanel.sh  
+chmod +x setup-aapanel.sh  
+```
+
+2. Jalankan
+```bash
+./setup-aapanel.sh
+```
