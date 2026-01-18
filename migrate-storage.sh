@@ -1,50 +1,89 @@
 #!/bin/bash
-# Script: migrate-storage.sh
-# Fungsi: Memindahkan Docker & CasaOS storage ke SSD/HDD eksternal
-# Untuk Linux/Debian/Armbian
+# CasaOS Storage Setup Only
+# Mount SSD/HDD untuk:
+#  - /var/lib/casaos
+#  - /DATA/AppData
+# Aman untuk disk yang sudah ter-mount
 
 set -e
 
-echo "=== Deteksi storage eksternal ==="
+echo "=== DETEKSI DISK ==="
 lsblk
 echo
-read -p "Masukkan device SSD/HDD (contoh: sda1): " DEV
+read -p "Masukkan partisi SSD/HDD (contoh: sda1): " DEV
 
-TARGET="/dev/$DEV"
-MOUNT_POINT="/mnt/external"
+DISK="/dev/$DEV"
+BASE="/mnt/casaos-storage"
 
-echo "=== Membuat mount point ==="
-mkdir -p $MOUNT_POINT
+# Cek filesystem
+FS_TYPE=$(blkid -o value -s TYPE "$DISK" || true)
 
-echo "=== Format drive (ext4) ==="
-read -p "Format drive ke ext4? (y/n): " FM
-if [ "$FM" = "y" ]; then
-    mkfs.ext4 $TARGET
+if [ -z "$FS_TYPE" ]; then
+    echo "⚠ Disk belum ada filesystem."
+    read -p "Format ke ext4? (y/n): " FORMAT
+    if [ "$FORMAT" = "y" ]; then
+        mkfs.ext4 "$DISK"
+    else
+        echo "Batal. Disk belum siap."
+        exit 1
+    fi
+else
+    echo "✔ Filesystem terdeteksi: $FS_TYPE"
 fi
 
-echo "=== Mount drive ==="
-mount $TARGET $MOUNT_POINT
+# Buat mount point utama
+mkdir -p "$BASE"
 
-echo "=== Stop Docker ==="
-systemctl stop docker
+# Cek apakah sudah ter-mount
+if mountpoint -q "$BASE"; then
+    echo "✔ Disk sudah ter-mount di $BASE"
+else
+    echo "Mounting disk..."
+    mount "$DISK" "$BASE"
+fi
 
-echo "=== Migrasi Docker data ==="
-rsync -aP /var/lib/docker/ $MOUNT_POINT/docker/
-mv /var/lib/docker /var/lib/docker.bak
-ln -s $MOUNT_POINT/docker /var/lib/docker
+# Buat struktur folder
+mkdir -p "$BASE/casaos"
+mkdir -p "$BASE/appdata"
 
-echo "=== Migrasi CasaOS data ==="
-rsync -aP /var/lib/casaos/ $MOUNT_POINT/casaos/
-mv /var/lib/casaos /var/lib/casaos.bak
-ln -s $MOUNT_POINT/casaos /var/lib/casaos
+# Mount point sistem
+mkdir -p /var/lib/casaos
+mkdir -p /DATA/AppData
 
-echo "=== Tambahkan ke /etc/fstab ==="
-UUID=$(blkid -s UUID -o value $TARGET)
-echo "UUID=$UUID  $MOUNT_POINT  ext4  defaults  0  2" >> /etc/fstab
+# Bind mount (cek dulu agar tidak double mount)
+bind_mount() {
+    SRC=$1
+    DST=$2
 
-echo "=== Start Docker ==="
-systemctl start docker
+    if mountpoint -q "$DST"; then
+        echo "✔ $DST sudah ter-mount"
+    else
+        mount --bind "$SRC" "$DST"
+        echo "✔ Bind mount $SRC -> $DST"
+    fi
+}
+
+bind_mount "$BASE/casaos" /var/lib/casaos
+bind_mount "$BASE/appdata" /DATA/AppData
+
+# Ambil UUID
+UUID=$(blkid -s UUID -o value "$DISK")
+
+# Tambah ke fstab jika belum ada
+if ! grep -q "$UUID" /etc/fstab; then
+cat <<EOF >> /etc/fstab
+
+# CasaOS Storage
+UUID=$UUID  $BASE  ext4  defaults,nofail  0  2
+$BASE/casaos   /var/lib/casaos   none  bind,nofail  0  0
+$BASE/appdata  /DATA/AppData     none  bind,nofail  0  0
+EOF
+fi
 
 echo
-echo "=== Migrasi selesai! ==="
-echo "Data Docker & CasaOS sekarang tersimpan di SSD/HDD eksternal."
+echo "=== SELESAI ==="
+echo "Mount storage CasaOS:"
+echo " - /var/lib/casaos"
+echo " - /DATA/AppData"
+echo
+echo "Sekarang bisa install CasaOS."
