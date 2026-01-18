@@ -32,7 +32,3 @@ chmod +x migrate-storage.sh
 ```bash
 ./migrate-storage.sh
 ```
-2. Jalankan
-```bash
-./setup-aapanel.sh
-```
