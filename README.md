@@ -1,34 +1,55 @@
-# Migrasi Storage CasaOS ke SSD/HDD Eksternal & Move App Data
+#!/bin/bash
+# Storage setup
+# Docker + CasaOS + CasaOS AppData
+# Jalankan sebelum install Docker & CasaOS
 
-Tutorial ini menjelaskan cara memindahkan penyimpanan utama Docker & CasaOS ke SSD atau HDD eksternal agar:
-- Lebih cepat
-- Tidak membebani SD Card/eMMC
-- Aman untuk jangka panjang
+set -e
 
----
+echo "=== DETEKSI DISK ==="
+lsblk
+echo
+read -p "Masukkan partisi SSD/HDD (contoh: sda1): " DEV
 
-## 📦 Fitur Script
-- Otomatis mendeteksi perangkat storage
-- Opsional format EXT4
-- Memindahkan:
-  - `/var/lib/docker`
-  - `/var/lib/casaos`
-- Menambahkan otomatis ke `/etc/fstab`
-- Membuat backup data lama
-- Mendukung SSD dan HDD
+DISK="/dev/$DEV"
+BASE="/mnt/storage"
 
----
+# 1. Mount disk utama
+mkdir -p $BASE
 
-## 🧰 Cara Pakai
+read -p "Format disk ke ext4? (y/n): " FORMAT
+if [ "$FORMAT" = "y" ]; then
+    mkfs.ext4 $DISK
+fi
 
-1. Download script Migrasi :
+mount $DISK $BASE
 
-```bash
-wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/migrate-storage.sh  
-chmod +x migrate-storage.sh  
-```
+# 2. Buat struktur folder
+mkdir -p $BASE/{docker,casaos,appdata}
 
-2. Jalankan
-```bash
-./migrate-storage.sh
-```
+# 3. Buat mount point sistem
+mkdir -p /var/lib/docker
+mkdir -p /var/lib/casaos
+mkdir -p /DATA/AppData
+
+# 4. Bind mount
+mount --bind $BASE/docker /var/lib/docker
+mount --bind $BASE/casaos /var/lib/casaos
+mount --bind $BASE/appdata /DATA/AppData
+
+# 5. FSTAB
+UUID=$(blkid -s UUID -o value $DISK)
+
+cat <<EOF >> /etc/fstab
+UUID=$UUID  $BASE  ext4  defaults  0  2
+$BASE/docker   /var/lib/docker  none  bind  0  0
+$BASE/casaos   /var/lib/casaos  none  bind  0  0
+$BASE/appdata  /DATA/AppData    none  bind  0  0
+EOF
+
+echo
+echo "=== SELESAI ==="
+echo "Sekarang install:"
+echo "1. Docker"
+echo "2. CasaOS"
+echo
+echo "Semua data Docker & CasaOS langsung ke SSD/HDD."
