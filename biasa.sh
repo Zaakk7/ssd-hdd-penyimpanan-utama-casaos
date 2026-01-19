@@ -1,6 +1,6 @@
 #!/bin/bash
 # Storage setup khusus foto & video
-# Format ext4 (aman untuk server / mati listrik)
+# Format ext4 (aman mati listrik)
 
 set -e
 
@@ -12,16 +12,23 @@ read -p "Masukkan partisi HDD/SSD (contoh: sdb1): " DEV
 DISK="/dev/$DEV"
 BASE="/mnt/media"
 
+# Unmount jika sedang ter-mount
+if mount | grep -q "$DISK"; then
+    echo "Partisi sedang ter-mount. Melakukan unmount..."
+    umount $DISK
+fi
+
 mkdir -p $BASE
 
 read -p "Format disk ke ext4? (y/n): " FORMAT
 if [ "$FORMAT" = "y" ]; then
-    mkfs.ext4 $DISK
+    echo "Memformat $DISK ke ext4..."
+    mkfs.ext4 -F $DISK
 fi
 
 mount $DISK $BASE
 
-# Folder khusus
+# Folder media
 mkdir -p $BASE/{photos,videos}
 
 # Auto mount saat boot
@@ -34,7 +41,7 @@ EOF
 echo
 echo "=== SELESAI ==="
 echo "Folder siap:"
-echo "$BASE/photos  -> foto"
-echo "$BASE/videos  -> video"
+echo "$BASE/photos"
+echo "$BASE/videos"
 echo
-echo "Bisa dishare ke Windows via Samba / CasaOS / FTP"
+echo "Disk akan otomatis ter-mount saat reboot."
