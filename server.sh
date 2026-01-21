@@ -1,42 +1,51 @@
 #!/bin/bash
-# Storage setup
-# Docker + CasaOS + CasaOS AppData
-# Jalankan sebelum install Docker & CasaOS
-
 set -e
 
-echo "=== DETEKSI DISK ==="
-lsblk
-echo
-read -p "Masukkan partisi SSD/HDD (contoh: sda1): " DEV
+echo "=== MIGRASI STORAGE DOCKER & CASAOS ==="
 
+read -p "Masukkan partisi disk baru (contoh: sdb1): " DEV
 DISK="/dev/$DEV"
 BASE="/mnt/storage"
 
-# 1. Mount disk utama
+systemctl stop docker
+
+# Unmount jika ter-mount
+if mount | grep -q "$DISK"; then
+    umount $DISK
+fi
+
 mkdir -p $BASE
 
 read -p "Format disk ke ext4? (y/n): " FORMAT
 if [ "$FORMAT" = "y" ]; then
-    mkfs.ext4 $DISK
+    mkfs.ext4 -F $DISK
 fi
 
 mount $DISK $BASE
 
-# 2. Buat struktur folder
-mkdir -p $BASE/{docker,casaos,appdata}
+mkdir -p $BASE/{docker,casaos,appdata,photos}
 
-# 3. Buat mount point sistem
-mkdir -p /var/lib/docker
-mkdir -p /var/lib/casaos
-mkdir -p /DATA/AppData
+echo "Copy data Docker..."
+rsync -aHAX /var/lib/docker/ $BASE/docker/
 
-# 4. Bind mount
+echo "Copy data CasaOS..."
+rsync -aHAX /var/lib/casaos/ $BASE/casaos/
+
+if [ -d /DATA/AppData ]; then
+  echo "Copy data AppData..."
+  rsync -aHAX /DATA/AppData/ $BASE/appdata/
+fi
+
+mv /var/lib/docker /var/lib/docker.bak
+mv /var/lib/casaos /var/lib/casaos.bak
+mv /DATA/AppData /DATA/AppData.bak 2>/dev/null || true
+
+mkdir -p /var/lib/docker /var/lib/casaos /DATA/AppData
+
 mount --bind $BASE/docker /var/lib/docker
 mount --bind $BASE/casaos /var/lib/casaos
 mount --bind $BASE/appdata /DATA/AppData
 
-# 5. FSTAB
 UUID=$(blkid -s UUID -o value $DISK)
 
 cat <<EOF >> /etc/fstab
@@ -46,10 +55,10 @@ $BASE/casaos   /var/lib/casaos  none  bind  0  0
 $BASE/appdata  /DATA/AppData    none  bind  0  0
 EOF
 
-echo
-echo "=== SELESAI ==="
-echo "Sekarang install:"
-echo "1. Docker"
-echo "2. CasaOS"
-echo
-echo "Semua data Docker & CasaOS langsung ke SSD/HDD."
+systemctl start docker
+
+echo "=== MIGRASI SELESAI ==="
+echo "Backup lama ada di:"
+echo "/var/lib/docker.bak"
+echo "/var/lib/casaos.bak"
+echo "/DATA/AppData.bak"
