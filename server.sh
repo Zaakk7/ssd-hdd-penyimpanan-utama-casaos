@@ -1,16 +1,19 @@
 #!/bin/bash
 set -e
 
-echo "=== MIGRASI STORAGE DOCKER & CASAOS ==="
+echo "=== MIGRASI STORAGE DOCKER & CASAOS (BIND MODE) ==="
 
 read -p "Masukkan partisi disk baru (contoh: sdb1): " DEV
 DISK="/dev/$DEV"
 BASE="/mnt/storage"
 
-systemctl stop docker
+echo "Stopping services..."
+systemctl stop casaos || true
+systemctl stop docker || true
 
 # Unmount jika ter-mount
-if mount | grep -q "$DISK"; then
+if findmnt -rn -S $DISK >/dev/null; then
+    echo "Unmounting existing mount..."
     umount $DISK
 fi
 
@@ -23,7 +26,7 @@ fi
 
 mount $DISK $BASE
 
-mkdir -p $BASE/{docker,casaos,appdata,photos}
+mkdir -p $BASE/{docker,casaos,appdata}
 
 echo "Copy data Docker..."
 rsync -aHAX /var/lib/docker/ $BASE/docker/
@@ -36,6 +39,7 @@ if [ -d /DATA/AppData ]; then
   rsync -aHAX /DATA/AppData/ $BASE/appdata/
 fi
 
+echo "Backup old data..."
 mv /var/lib/docker /var/lib/docker.bak
 mv /var/lib/casaos /var/lib/casaos.bak
 mv /DATA/AppData /DATA/AppData.bak 2>/dev/null || true
@@ -48,17 +52,19 @@ mount --bind $BASE/appdata /DATA/AppData
 
 UUID=$(blkid -s UUID -o value $DISK)
 
-cat <<EOF >> /etc/fstab
-UUID=$UUID  $BASE  ext4  defaults  0  2
-$BASE/docker   /var/lib/docker  none  bind  0  0
-$BASE/casaos   /var/lib/casaos  none  bind  0  0
-$BASE/appdata  /DATA/AppData    none  bind  0  0
-EOF
+# Tambah fstab jika belum ada
+grep -q "$UUID" /etc/fstab || echo "UUID=$UUID  $BASE  ext4  defaults,noatime,nodiratime,nofail  0  2" >> /etc/fstab
+grep -q "$BASE/docker" /etc/fstab || echo "$BASE/docker   /var/lib/docker  none  bind  0  0" >> /etc/fstab
+grep -q "$BASE/casaos" /etc/fstab || echo "$BASE/casaos   /var/lib/casaos  none  bind  0  0" >> /etc/fstab
+grep -q "$BASE/appdata" /etc/fstab || echo "$BASE/appdata  /DATA/AppData  none  bind  0  0" >> /etc/fstab
 
+echo "Starting services..."
 systemctl start docker
+systemctl start casaos
 
 echo "=== MIGRASI SELESAI ==="
 echo "Backup lama ada di:"
 echo "/var/lib/docker.bak"
 echo "/var/lib/casaos.bak"
 echo "/DATA/AppData.bak"
+echo "Reboot sangat disarankan."
