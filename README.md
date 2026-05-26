@@ -4,7 +4,7 @@
 
 > 1. Download
 ```bash
-wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/server.sh  
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/server.sh  
 chmod +x server.sh  
 ```
 
@@ -17,7 +17,7 @@ chmod +x server.sh
 
 > 1. Download
 ```bash
-wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/biasa.sh  
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/biasa.sh  
 chmod +x biasa.sh  
 ```
 
