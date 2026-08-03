@@ -1,5 +1,9 @@
 # <h1 align="center">STORAGE IN CASA OS </h1>
 
+```bash
+wget https://raw.githubusercontent.com/Zaakk7/ssd-hdd-penyimpanan-utama-casaos/main/meson-gxl-s905x-b860h.dtb
+```
+
 ## SERVER
 
 > 1. Download
